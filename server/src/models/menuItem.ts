@@ -7,6 +7,12 @@ export interface IMenuItem extends Document {
   price: number;
   image: string;
   available: boolean;
+  isSpecial: boolean;
+  originalPrice?: number;
+  discountPercentage?: number;
+  specialBadge?: 'hot' | 'limited' | 'new' | 'bestseller' | 'combo';
+  specialDescription?: string;
+  validUntil?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,15 +52,43 @@ const MenuItemSchema = new Schema<IMenuItem>(
       type: Boolean,
       default: true,
     },
+    isSpecial: {
+      type: Boolean,
+      default: false,
+    },
+    originalPrice: {
+      type: Number,
+      min: [0, 'Original price cannot be negative'],
+    },
+    discountPercentage: {
+      type: Number,
+      min: [0, 'Discount cannot be negative'],
+      max: [100, 'Discount cannot exceed 100%'],
+    },
+    specialBadge: {
+      type: String,
+      enum: {
+        values: ['hot', 'limited', 'new', 'bestseller', 'combo'],
+        message: '{VALUE} is not a valid special badge',
+      },
+    },
+    specialDescription: {
+      type: String,
+      trim: true,
+      maxlength: [200, 'Special description cannot exceed 200 characters'],
+    },
+    validUntil: {
+      type: Date,
+    },
   },
   {
-    timestamps: true, // Automatically adds createdAt and updatedAt
+    timestamps: true,
   }
 );
 
-// Indexes for better query performance
 MenuItemSchema.index({ category: 1, available: 1 });
-MenuItemSchema.index({ name: 'text', description: 'text' }); // Text search
+MenuItemSchema.index({ isSpecial: 1, validUntil: 1 });
+MenuItemSchema.index({ name: 'text', description: 'text' });
 
 const MenuItem = mongoose.model<IMenuItem>('MenuItem', MenuItemSchema);
 

@@ -23,13 +23,13 @@ export default function Cart({ isOpen, onClose }: CartProps) {
         specialInstructions: ''
     });
 
-    // ✅ Load user data on component mount
+    // Load user data on component mount
     useEffect(() => {
         const user = localStorage.getItem('user');
         if (user) {
             try {
                 const parsedUser = JSON.parse(user);
-                console.log('👤 Loaded user from localStorage:', parsedUser);
+                console.log('Loaded user from localStorage:', parsedUser);
                 setCheckoutData(prev => ({
                     ...prev,
                     name: parsedUser.fullName || parsedUser.name || '',
@@ -101,8 +101,8 @@ export default function Cart({ isOpen, onClose }: CartProps) {
             const token = localStorage.getItem('token');
             const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-            console.log('🔍 User from localStorage:', user);
-            console.log('🔍 User ID:', user.id || user._id);
+            console.log('User from localStorage:', user);
+            console.log('User ID:', user.id || user._id);
 
             // Prepare order data
             const orderData = {
@@ -118,7 +118,7 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                 specialInstructions: `Room: ${checkoutData.roomNumber}${checkoutData.specialInstructions ? ` | ${checkoutData.specialInstructions}` : ''}`
             };
 
-            console.log('📦 Sending order data:', orderData);
+            console.log('Sending order data:', orderData);
 
             const response = await fetch(`${API_URL}/api/orders`, {
                 method: 'POST',
@@ -131,10 +131,10 @@ export default function Cart({ isOpen, onClose }: CartProps) {
 
             const data = await response.json();
 
-            console.log('✅ Order response:', data);
+            console.log('Order response:', data);
 
             if (response.ok && data.success) {
-                toast.success('🎉 Order placed successfully!', {
+                toast.success('Order placed successfully!', {
                     description: `Your food will be delivered to Room ${checkoutData.roomNumber}`,
                     duration: 5000
                 });
@@ -156,7 +156,7 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                 toast.error(data.message || 'Failed to place order');
             }
         } catch (error) {
-            console.error('❌ Order error:', error);
+            console.error('Order error:', error);
             toast.error('Failed to place order. Please try again.');
         } finally {
             setIsCheckingOut(false);
@@ -169,71 +169,71 @@ export default function Cart({ isOpen, onClose }: CartProps) {
         <>
             {/* Backdrop */}
             <div
-                className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 transition-opacity"
+                className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity"
                 onClick={onClose}
             />
 
             {/* Cart/Checkout Sidebar */}
-            <div className="fixed right-0 top-0 h-full w-full sm:w-96 bg-white shadow-2xl z-50 flex flex-col animate-slide-in-right">
+            <div className="fixed right-0 top-0 h-full w-full sm:w-96 bg-white shadow-2xl z-50 flex flex-col">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-secondary to-blue-900 text-white">
+                <div className="flex items-center justify-between p-5 border-b-2 border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                     <div className="flex items-center gap-3">
                         {showCheckoutForm ? (
                             <>
                                 <button
                                     onClick={handleBackToCart}
-                                    className="size-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+                                    className="w-9 h-9 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
                                 >
                                     <ArrowLeft className="w-5 h-5" />
                                 </button>
                                 <div>
-                                    <h2 className="text-xl font-bold">Checkout</h2>
-                                    <p className="text-sm text-blue-200">Complete your order</p>
+                                    <h2 className="text-lg font-semibold">Checkout</h2>
+                                    <p className="text-xs text-blue-100">Complete your order</p>
                                 </div>
                             </>
                         ) : (
                             <>
-                                <span className="material-symbols-outlined text-3xl">shopping_cart</span>
+                                <span className="material-symbols-outlined text-2xl">shopping_cart</span>
                                 <div>
-                                    <h2 className="text-xl font-bold">Your Cart</h2>
-                                    <p className="text-sm text-blue-200">{itemCount} {itemCount === 1 ? 'item' : 'items'}</p>
+                                    <h2 className="text-lg font-semibold">Your Cart</h2>
+                                    <p className="text-xs text-blue-100">{itemCount} {itemCount === 1 ? 'item' : 'items'}</p>
                                 </div>
                             </>
                         )}
                     </div>
                     <button
                         onClick={onClose}
-                        className="size-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+                        className="w-9 h-9 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
                     >
-                        <span className="material-symbols-outlined">close</span>
+                        <span className="material-symbols-outlined text-xl">close</span>
                     </button>
                 </div>
 
                 {/* Content - Cart or Checkout Form */}
-                <div className="flex-grow overflow-y-auto p-6">
+                <div className="flex-grow overflow-y-auto p-5">
                     {showCheckoutForm ? (
                         /* CHECKOUT FORM */
-                        <div className="space-y-6">
+                        <div className="space-y-5">
                             {/* Order Summary */}
-                            <div className="bg-slate-50 rounded-2xl p-4">
-                                <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
-                                    <ShoppingBag className="w-5 h-5" />
+                            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                                <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                    <ShoppingBag className="w-4 h-4" />
                                     Order Summary
                                 </h3>
                                 <div className="space-y-2 mb-3">
                                     {cartItems.map((item) => (
                                         <div key={item.menuItem.id} className="flex justify-between text-sm">
-                                            <span className="text-slate-600">
+                                            <span className="text-gray-600">
                                                 {item.menuItem.name} x{item.quantity}
                                             </span>
-                                            <span className="font-semibold text-slate-800">
+                                            <span className="font-medium text-gray-900">
                                                 ₹{item.menuItem.price * item.quantity}
                                             </span>
                                         </div>
                                     ))}
                                 </div>
-                                <div className="h-px bg-slate-200 my-2" />
-                                <div className="flex justify-between font-bold text-secondary">
+                                <div className="h-px bg-gray-300 my-2" />
+                                <div className="flex justify-between font-semibold text-blue-600 text-base">
                                     <span>Total</span>
                                     <span>₹{totalAmount}</span>
                                 </div>
@@ -241,12 +241,12 @@ export default function Cart({ isOpen, onClose }: CartProps) {
 
                             {/* Customer Details Form */}
                             <div className="space-y-4">
-                                <h3 className="font-bold text-slate-800">Delivery Details</h3>
+                                <h3 className="font-semibold text-gray-900">Delivery Details</h3>
 
                                 {/* Name */}
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                        <User className="w-4 h-4 inline mr-2" />
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <User className="w-4 h-4 inline mr-1" />
                                         Full Name
                                     </label>
                                     <input
@@ -255,15 +255,15 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                                         value={checkoutData.name}
                                         onChange={handleInputChange}
                                         placeholder="Enter your name"
-                                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-secondary focus:outline-none transition-colors"
+                                        className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
                                         required
                                     />
                                 </div>
 
                                 {/* Phone */}
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                        <Phone className="w-4 h-4 inline mr-2" />
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <Phone className="w-4 h-4 inline mr-1" />
                                         Phone Number
                                     </label>
                                     <input
@@ -273,16 +273,16 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                                         onChange={handleInputChange}
                                         placeholder="10-digit mobile number"
                                         maxLength={10}
-                                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-secondary focus:outline-none transition-colors"
+                                        className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
                                         required
                                     />
                                 </div>
 
                                 {/* Room Number */}
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                                        <MapPin className="w-4 h-4 inline mr-2" />
-                                        Room Number *
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <MapPin className="w-4 h-4 inline mr-1" />
+                                        Room Number
                                     </label>
                                     <input
                                         type="text"
@@ -290,14 +290,14 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                                         value={checkoutData.roomNumber}
                                         onChange={handleInputChange}
                                         placeholder="e.g., 101, A-Block"
-                                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-secondary focus:outline-none transition-colors"
+                                        className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
                                         required
                                     />
                                 </div>
 
                                 {/* Special Instructions */}
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Special Instructions (Optional)
                                     </label>
                                     <textarea
@@ -306,14 +306,14 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                                         onChange={handleInputChange}
                                         placeholder="Any special requests..."
                                         rows={3}
-                                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-secondary focus:outline-none transition-colors resize-none"
+                                        className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors resize-none"
                                     />
                                 </div>
 
                                 {/* Payment Method */}
-                                <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
-                                    <p className="text-sm font-semibold text-green-800">
-                                        💵 Payment Method: Cash on Delivery
+                                <div className="bg-green-50 border-2 border-green-200 rounded-lg p-3">
+                                    <p className="text-sm font-medium text-green-800">
+                                        Payment Method: Cash on Delivery
                                     </p>
                                 </div>
                             </div>
@@ -322,7 +322,7 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                             <button
                                 onClick={handleConfirmOrder}
                                 disabled={isCheckingOut}
-                                className="w-full bg-secondary hover:bg-secondary-light text-white font-bold py-4 rounded-xl shadow-lg shadow-secondary/30 transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 rounded-lg shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isCheckingOut ? (
                                     <>
@@ -332,9 +332,7 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                                 ) : (
                                     <>
                                         Confirm Order - ₹{totalAmount}
-                                        <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">
-                                            arrow_forward
-                                        </span>
+                                        <span className="material-symbols-outlined">arrow_forward</span>
                                     </>
                                 )}
                             </button>
@@ -343,31 +341,31 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                         /* CART ITEMS */
                         <>
                             {cartItems.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full text-center">
-                                    <div className="size-24 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-                                        <span className="material-symbols-outlined text-5xl text-slate-400">shopping_cart</span>
+                                <div className="flex flex-col items-center justify-center h-full text-center py-12">
+                                    <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                                        <span className="material-symbols-outlined text-4xl text-gray-400">shopping_cart</span>
                                     </div>
-                                    <h3 className="text-lg font-bold text-slate-800 mb-2">Your cart is empty</h3>
-                                    <p className="text-slate-500 text-sm mb-6">Add some delicious items to get started!</p>
+                                    <h3 className="text-base font-semibold text-gray-900 mb-2">Your cart is empty</h3>
+                                    <p className="text-gray-600 text-sm mb-5">Add some delicious items to get started</p>
                                     <button
                                         onClick={onClose}
-                                        className="bg-secondary text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-secondary-light transition-colors"
+                                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium text-sm transition-colors"
                                     >
                                         Browse Menu
                                     </button>
                                 </div>
                             ) : (
-                                <div className="space-y-4">
+                                <div className="space-y-3">
                                     {cartItems.map((item) => {
                                         const imageUrl = item.menuItem.image ? `${API_URL}/upload/${item.menuItem.image}` : '';
 
                                         return (
                                             <div
                                                 key={item.menuItem.id}
-                                                className="flex gap-4 p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors"
+                                                className="flex gap-3 p-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors"
                                             >
                                                 {/* Image */}
-                                                <div className="size-20 rounded-xl overflow-hidden bg-slate-200 flex-shrink-0">
+                                                <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
                                                     {imageUrl ? (
                                                         <img
                                                             src={imageUrl}
@@ -376,35 +374,35 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                                                         />
                                                     ) : (
                                                         <div className="w-full h-full flex items-center justify-center">
-                                                            <span className="text-2xl">🍽️</span>
+                                                            <span className="material-symbols-outlined text-2xl text-gray-400">restaurant</span>
                                                         </div>
                                                     )}
                                                 </div>
 
                                                 {/* Details */}
                                                 <div className="flex-grow">
-                                                    <h4 className="font-bold text-slate-800 mb-1 line-clamp-1">
+                                                    <h4 className="font-medium text-gray-900 mb-1 line-clamp-1 text-sm">
                                                         {item.menuItem.name}
                                                     </h4>
-                                                    <p className="text-sm font-bold text-secondary mb-2">
+                                                    <p className="text-sm font-semibold text-blue-600 mb-2">
                                                         ₹{item.menuItem.price}
                                                     </p>
 
                                                     {/* Quantity Controls */}
                                                     <div className="flex items-center gap-3">
-                                                        <div className="flex items-center gap-2 bg-white rounded-full p-1 shadow-sm">
+                                                        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-1">
                                                             <button
                                                                 onClick={() => updateQuantity(item.menuItem.id, item.quantity - 1)}
-                                                                className="size-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors"
+                                                                className="w-7 h-7 rounded-md bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 transition-colors"
                                                             >
                                                                 <span className="material-symbols-outlined text-base">remove</span>
                                                             </button>
-                                                            <span className="font-bold text-slate-800 min-w-[20px] text-center">
+                                                            <span className="font-semibold text-gray-900 min-w-[24px] text-center text-sm">
                                                                 {item.quantity}
                                                             </span>
                                                             <button
                                                                 onClick={() => updateQuantity(item.menuItem.id, item.quantity + 1)}
-                                                                className="size-7 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors"
+                                                                className="w-7 h-7 rounded-md bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 transition-colors"
                                                             >
                                                                 <span className="material-symbols-outlined text-base">add</span>
                                                             </button>
@@ -427,9 +425,9 @@ export default function Cart({ isOpen, onClose }: CartProps) {
                                     {cartItems.length > 0 && (
                                         <button
                                             onClick={clearCart}
-                                            className="w-full text-red-500 hover:text-red-600 text-sm font-semibold py-2 transition-colors flex items-center justify-center gap-2"
+                                            className="w-full text-red-500 hover:text-red-600 text-sm font-medium py-2 transition-colors flex items-center justify-center gap-2"
                                         >
-                                            <span className="material-symbols-outlined text-base">delete_sweep</span>
+                                            <span className="material-symbols-outlined text-lg">delete_sweep</span>
                                             Clear Cart
                                         </button>
                                     )}
@@ -441,33 +439,31 @@ export default function Cart({ isOpen, onClose }: CartProps) {
 
                 {/* Footer - Checkout Button (only show in cart view) */}
                 {!showCheckoutForm && cartItems.length > 0 && (
-                    <div className="border-t border-slate-200 p-6 bg-slate-50">
+                    <div className="border-t-2 border-gray-200 p-5 bg-gray-50">
                         {/* Subtotal */}
                         <div className="space-y-2 mb-4">
-                            <div className="flex justify-between text-slate-600">
+                            <div className="flex justify-between text-gray-600 text-sm">
                                 <span>Subtotal</span>
-                                <span className="font-semibold">₹{totalAmount}</span>
+                                <span className="font-medium">₹{totalAmount}</span>
                             </div>
-                            <div className="flex justify-between text-slate-600">
+                            <div className="flex justify-between text-gray-600 text-sm">
                                 <span>Delivery Fee</span>
-                                <span className="font-semibold text-green-600">Free</span>
+                                <span className="font-medium text-green-600">Free</span>
                             </div>
-                            <div className="h-px bg-slate-200 my-2" />
-                            <div className="flex justify-between text-lg font-bold text-slate-800">
+                            <div className="h-px bg-gray-300 my-2" />
+                            <div className="flex justify-between text-base font-semibold text-gray-900">
                                 <span>Total</span>
-                                <span className="text-secondary">₹{totalAmount}</span>
+                                <span className="text-blue-600">₹{totalAmount}</span>
                             </div>
                         </div>
 
                         {/* Checkout Button */}
                         <button
                             onClick={handleCheckoutClick}
-                            className="w-full bg-secondary hover:bg-secondary-light text-white font-bold py-4 rounded-xl shadow-lg shadow-secondary/30 transition-all flex items-center justify-center gap-2 group"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 rounded-lg shadow-md transition-all flex items-center justify-center gap-2"
                         >
                             Proceed to Checkout
-                            <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">
-                                arrow_forward
-                            </span>
+                            <span className="material-symbols-outlined">arrow_forward</span>
                         </button>
                     </div>
                 )}

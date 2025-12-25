@@ -3,294 +3,375 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import Navbar from './Navbar';
 import Footer from './Footer';
-import { User, Phone, Mail, Calendar, LogOut, Edit, ShoppingBag } from 'lucide-react';
-import collegeImage from '../assets/college.webp';
+import { User, Phone, Mail, LogOut, ShoppingBag, Calendar } from 'lucide-react';
+import collegeImage from '../assets/college.jpg';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 interface UserData {
-    name: string;
+    id: string;
+    fullName: string;
     email?: string;
-    phone: string;
-    role?: string;
-    department?: string;
-    createdAt?: string;
+    phone?: string;
+    role: string;
+    authProvider: string;
+    createdAt: string;
+}
+
+interface RecentOrder {
+    id: string;
+    items: Array<{
+        name: string;
+        price: number;
+        quantity: number;
+        image?: string;
+    }>;
+    totalAmount: number;
+    status: string;
+    createdAt: string;
 }
 
 const Profile = () => {
     const navigate = useNavigate();
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [userData, setUserData] = useState<UserData | null>(null);
+    const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        checkLoginStatus();
+        checkLoginAndFetchData();
     }, []);
 
-    const checkLoginStatus = () => {
+    const checkLoginAndFetchData = async () => {
         const token = localStorage.getItem('token');
-        const user = localStorage.getItem('user');
 
-        if (token && user) {
-            try {
-                const parsedUser = JSON.parse(user);
-                setUserData(parsedUser);
-                setIsLoggedIn(true);
-            } catch (error) {
-                console.error('Error parsing user data:', error);
-                setIsLoggedIn(false);
-            }
-        } else {
+        if (!token) {
             setIsLoggedIn(false);
+            setIsLoading(false);
+            return;
         }
+
+        setIsLoggedIn(true);
+        await Promise.all([
+            fetchUserProfile(token),
+            fetchRecentOrders(token)
+        ]);
         setIsLoading(false);
+    };
+
+    const fetchUserProfile = async (token: string) => {
+        try {
+            const response = await fetch(`${API_URL}/api/auth/user/profile`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) throw new Error('Failed to fetch profile');
+
+            const data = await response.json();
+            setUserData(data.data);
+        } catch (error) {
+            console.error('Error fetching profile:', error);
+            toast.error('Failed to load profile');
+        }
+    };
+
+    const fetchRecentOrders = async (token: string) => {
+        try {
+            // ✅ Changed from /api/auth/user/orders/recent to /api/orders/recent
+            const response = await fetch(`${API_URL}/api/orders/recent`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch orders');
+            }
+
+            const data = await response.json();
+
+            if (data.data && data.data.length > 0) {
+            }
+
+            setRecentOrders(data.data || []);
+        } catch (error) {
+        }
     };
 
     const handleLogout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        toast.success('Logged out successfully!');
+        toast.success('Logged out successfully');
         setTimeout(() => {
             navigate('/login');
         }, 1000);
     };
 
-    const handleLoginRedirect = () => {
-        navigate('/login');
-    };
-
-    const formatDate = (dateString?: string) => {
-        if (!dateString) return 'N/A';
+    const formatDate = (dateString: string) => {
         const date = new Date(dateString);
+        const now = new Date();
+        const diffInMs = now.getTime() - date.getTime();
+        const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+        if (diffInDays === 0) return 'Today';
+        if (diffInDays === 1) return 'Yesterday';
+        if (diffInDays < 7) return `${diffInDays} days ago`;
+
         return date.toLocaleDateString('en-IN', {
             day: 'numeric',
-            month: 'long',
+            month: 'short',
             year: 'numeric'
         });
     };
 
+    const getStatusBadge = (status: string) => {
+        const statusMap: Record<string, { bg: string; text: string; label: string }> = {
+            pending: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Pending' },
+            confirmed: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Confirmed' },
+            preparing: { bg: 'bg-orange-100', text: 'text-orange-700', label: 'Preparing' },
+            ready: { bg: 'bg-green-100', text: 'text-green-700', label: 'Ready' },
+            delivery: { bg: 'bg-purple-100', text: 'text-purple-700', label: 'Out for Delivery' },
+            delivered: { bg: 'bg-green-100', text: 'text-green-700', label: 'Delivered' },
+        };
+
+        const statusStyle = statusMap[status] || statusMap.pending;
+        return (
+            <span className={`text-xs ${statusStyle.bg} ${statusStyle.text} px-3 py-1 rounded-full font-semibold`}>
+                {statusStyle.label}
+            </span>
+        );
+    };
+
     if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-slate-100">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-secondary/30 border-t-secondary rounded-full animate-spin"></div>
-                    <p className="text-slate-600 font-medium">Loading profile...</p>
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="flex flex-col items-center gap-3">
+                    <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                    <p className="text-gray-600 text-sm font-medium">Loading profile...</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen flex flex-col relative">
-            {/* Background Image Fixed */}
+        <div className="min-h-screen flex flex-col bg-gray-50">
+            {/* Background Image */}
             <div
-                className="fixed inset-0 z-0 w-full h-full bg-cover bg-center bg-no-repeat"
+                className="fixed inset-0 z-0 bg-cover bg-center"
                 style={{ backgroundImage: `url(${collegeImage})` }}
             >
                 <div className="absolute inset-0 bg-white/60"></div>
-                <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent"></div>
             </div>
 
             {/* Main Content */}
-            <div className="relative z-10 flex flex-col min-h-screen w-full">
+            <div className="relative z-10 flex flex-col min-h-screen">
                 <Navbar />
 
-                <main className="flex-grow w-full px-4 sm:px-6 lg:px-8 py-6 md:py-8">
+                <main className="flex-grow w-full px-4 sm:px-6 lg:px-8 py-8">
                     {!isLoggedIn ? (
                         // Not Logged In State
-                        <div className="max-w-2xl mx-auto">
-                            <div className="glass-card rounded-3xl p-8 md:p-12 text-center">
-                                <div className="mb-6">
-                                    <div className="size-20 mx-auto bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                                        <User className="w-10 h-10 text-slate-400" />
-                                    </div>
-                                    <h2 className="text-3xl font-bold text-slate-800 mb-2">Not Logged In</h2>
-                                    <p className="text-slate-600 text-lg">Please login to view your profile and order food</p>
+                        <div className="max-w-xl mx-auto">
+                            <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-10 text-center">
+                                <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                    <User className="w-8 h-8 text-gray-400" />
                                 </div>
+                                <h2 className="text-2xl font-bold text-gray-800 mb-2">Not Logged In</h2>
+                                <p className="text-gray-600 mb-6">Please login to view your profile</p>
 
-                                <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+                                <div className="flex gap-3 justify-center">
                                     <button
-                                        onClick={handleLoginRedirect}
-                                        className="px-8 py-3 bg-secondary hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+                                        onClick={() => navigate('/login')}
+                                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
                                     >
-                                        <User className="w-5 h-5" />
-                                        Login Now
+                                        Login
                                     </button>
                                     <button
                                         onClick={() => navigate('/signup')}
-                                        className="px-8 py-3 bg-white hover:bg-slate-50 text-secondary font-bold rounded-xl border-2 border-secondary shadow-lg transition-all"
+                                        className="px-6 py-2.5 bg-white hover:bg-gray-50 text-blue-600 font-semibold rounded-lg border-2 border-blue-600 transition-colors"
                                     >
-                                        Create Account
+                                        Sign Up
                                     </button>
-                                </div>
-
-                                <div className="mt-8 pt-8 border-t border-slate-200">
-                                    <p className="text-slate-500 text-sm">
-                                        By logging in, you can browse menu, place orders, and track your food delivery
-                                    </p>
                                 </div>
                             </div>
                         </div>
                     ) : (
                         // Logged In State
                         <div className="max-w-5xl mx-auto">
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-                                {/* Left Column - Profile Card */}
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                {/* Profile Card */}
                                 <div className="lg:col-span-1">
-                                    <div className="glass-card rounded-3xl p-6 text-center sticky top-24">
-                                        {/* Profile Picture */}
-                                        <div className="mb-6">
-                                            <div className="size-32 mx-auto bg-gradient-to-br from-secondary to-blue-900 rounded-full flex items-center justify-center text-white shadow-xl mb-4">
-                                                <span className="text-5xl font-bold">
-                                                    {userData?.name?.charAt(0).toUpperCase() || 'U'}
+                                    <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 sticky top-24">
+                                        {/* Avatar */}
+                                        <div className="text-center mb-6">
+                                            <div className="w-24 h-24 mx-auto bg-blue-600 rounded-full flex items-center justify-center text-white mb-3">
+                                                <span className="text-3xl font-bold">
+                                                    {userData?.fullName?.charAt(0).toUpperCase() || 'U'}
                                                 </span>
                                             </div>
-                                            <h3 className="text-2xl font-bold text-slate-800 mb-1">{userData?.name || 'User'}</h3>
-                                            <p className="text-slate-500 text-sm font-medium uppercase tracking-wider">
-                                                {userData?.role || 'Faculty Member'}
+                                            <h3 className="text-xl font-bold text-gray-800">
+                                                {userData?.fullName || 'User'}
+                                            </h3>
+                                            <p className="text-sm text-gray-500 uppercase tracking-wide mt-1">
+                                                {userData?.role || 'Faculty'}
                                             </p>
-                                        </div>
-
-                                        {/* Quick Stats */}
-                                        <div className="grid grid-cols-2 gap-3 mb-6">
-                                            <div className="bg-white/60 rounded-xl p-3">
-                                                <p className="text-xs text-slate-500 font-bold uppercase mb-1">Orders</p>
-                                                <p className="text-2xl font-bold text-secondary">12</p>
-                                            </div>
-                                            <div className="bg-white/60 rounded-xl p-3">
-                                                <p className="text-xs text-slate-500 font-bold uppercase mb-1">Points</p>
-                                                <p className="text-2xl font-bold text-accent">350</p>
+                                            <div className="flex items-center justify-center gap-1.5 text-xs text-gray-500 mt-2">
+                                                <Calendar className="w-3.5 h-3.5" />
+                                                <span>
+                                                    {userData?.createdAt ? new Date(userData.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'N/A'}
+                                                </span>
                                             </div>
                                         </div>
 
                                         {/* Logout Button */}
                                         <button
                                             onClick={handleLogout}
-                                            className="w-full py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+                                            className="w-full py-2.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
                                         >
-                                            <LogOut className="w-5 h-5" />
+                                            <LogOut className="w-4 h-4" />
                                             Logout
                                         </button>
                                     </div>
                                 </div>
 
-                                {/* Right Column - Details */}
-                                <div className="lg:col-span-2 flex flex-col gap-6">
+                                {/* Details Column */}
+                                <div className="lg:col-span-2 space-y-6">
                                     {/* Personal Information */}
-                                    <div className="glass-card rounded-3xl p-6 md:p-8">
-                                        <div className="flex items-center justify-between mb-6">
-                                            <h3 className="text-xl font-bold text-slate-800">Personal Information</h3>
-                                            <button className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                                                <Edit className="w-5 h-5 text-slate-600" />
-                                            </button>
-                                        </div>
+                                    <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6">
+                                        <h3 className="text-lg font-bold text-gray-800 mb-4">Personal Information</h3>
 
-                                        <div className="space-y-4">
+                                        <div className="space-y-3">
                                             {/* Phone */}
-                                            <div className="flex items-start gap-4 p-4 bg-white/60 rounded-xl">
-                                                <div className="size-10 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
-                                                    <Phone className="w-5 h-5 text-secondary" />
-                                                </div>
-                                                <div className="flex-grow">
-                                                    <p className="text-xs text-slate-500 font-semibold uppercase mb-1">Phone Number</p>
-                                                    <p className="text-slate-800 font-medium">+91 {userData?.phone || 'Not provided'}</p>
-                                                </div>
-                                            </div>
-
-                                            {/* Email */}
-                                            <div className="flex items-start gap-4 p-4 bg-white/60 rounded-xl">
-                                                <div className="size-10 bg-green-50 rounded-full flex items-center justify-center flex-shrink-0">
-                                                    <Mail className="w-5 h-5 text-green-600" />
-                                                </div>
-                                                <div className="flex-grow">
-                                                    <p className="text-xs text-slate-500 font-semibold uppercase mb-1">Email Address</p>
-                                                    <p className="text-slate-800 font-medium break-all">
-                                                        {userData?.email || 'Not provided'}
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            {/* Department */}
-                                            {userData?.department && (
-                                                <div className="flex items-start gap-4 p-4 bg-white/60 rounded-xl">
-                                                    <div className="size-10 bg-purple-50 rounded-full flex items-center justify-center flex-shrink-0">
-                                                        <User className="w-5 h-5 text-purple-600" />
+                                            {userData?.phone && (
+                                                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                                                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                        <Phone className="w-5 h-5 text-blue-600" />
                                                     </div>
-                                                    <div className="flex-grow">
-                                                        <p className="text-xs text-slate-500 font-semibold uppercase mb-1">Department</p>
-                                                        <p className="text-slate-800 font-medium">{userData.department}</p>
+                                                    <div>
+                                                        <p className="text-xs text-gray-500 uppercase font-medium">Phone</p>
+                                                        <p className="text-sm text-gray-800 font-medium">+91 {userData.phone}</p>
                                                     </div>
                                                 </div>
                                             )}
 
-                                            {/* Member Since */}
-                                            <div className="flex items-start gap-4 p-4 bg-white/60 rounded-xl">
-                                                <div className="size-10 bg-orange-50 rounded-full flex items-center justify-center flex-shrink-0">
-                                                    <Calendar className="w-5 h-5 text-accent" />
+                                            {/* Email */}
+                                            {userData?.email && (
+                                                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                                                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                        <Mail className="w-5 h-5 text-green-600" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs text-gray-500 uppercase font-medium">Email</p>
+                                                        <p className="text-sm text-gray-800 font-medium break-all">
+                                                            {userData.email}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div className="flex-grow">
-                                                    <p className="text-xs text-slate-500 font-semibold uppercase mb-1">Member Since</p>
-                                                    <p className="text-slate-800 font-medium">{formatDate(userData?.createdAt)}</p>
+                                            )}
+
+                                            {/* Login Method */}
+                                            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                                                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                    <User className="w-5 h-5 text-purple-600" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-gray-500 uppercase font-medium">Login Method</p>
+                                                    <p className="text-sm text-gray-800 font-medium">
+                                                        {userData?.authProvider === 'google' ? 'Google Account' : 'Phone Number'}
+                                                    </p>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Recent Orders */}
-                                    <div className="glass-card rounded-3xl p-6 md:p-8">
-                                        <div className="flex items-center justify-between mb-6">
-                                            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                                                <ShoppingBag className="w-6 h-6 text-secondary" />
+                                    <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                                <ShoppingBag className="w-5 h-5 text-blue-600" />
                                                 Recent Orders
                                             </h3>
-                                            <button className="text-secondary hover:text-primary text-sm font-semibold">
+                                            <button
+                                                onClick={() => navigate('/track-order')}
+                                                className="text-blue-600 hover:text-blue-700 text-sm font-semibold transition-colors"
+                                            >
                                                 View All
                                             </button>
                                         </div>
 
-                                        <div className="space-y-3">
-                                            {/* Order Item 1 */}
-                                            <div className="flex items-center gap-4 p-4 bg-white/60 rounded-xl hover:shadow-md transition-shadow">
-                                                <div className="size-16 rounded-lg bg-slate-100 overflow-hidden flex-shrink-0">
-                                                    <img
-                                                        src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=100&auto=format"
-                                                        alt="Order"
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                </div>
-                                                <div className="flex-grow">
-                                                    <h4 className="font-bold text-slate-800">Chicken Burger Combo</h4>
-                                                    <p className="text-xs text-slate-500">2 days ago</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="font-bold text-secondary">₹150</p>
-                                                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">
-                                                        Delivered
-                                                    </span>
-                                                </div>
+                                        {recentOrders.length === 0 ? (
+                                            <div className="text-center py-10">
+                                                <ShoppingBag className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                                                <p className="text-gray-500 mb-4">No orders yet</p>
+                                                <button
+                                                    onClick={() => navigate('/menu')}
+                                                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+                                                >
+                                                    Order Now
+                                                </button>
                                             </div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {recentOrders.map((order) => {
+                                                    const firstItem = order.items[0];
+                                                    const imageUrl = firstItem?.image
+                                                        ? `${API_URL}/upload/${firstItem.image}`
+                                                        : '';
 
-                                            {/* Order Item 2 */}
-                                            <div className="flex items-center gap-4 p-4 bg-white/60 rounded-xl hover:shadow-md transition-shadow">
-                                                <div className="size-16 rounded-lg bg-slate-100 overflow-hidden flex-shrink-0">
-                                                    <img
-                                                        src="https://images.unsplash.com/photo-1513104890138-7c749659a591?w=100&auto=format"
-                                                        alt="Order"
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                </div>
-                                                <div className="flex-grow">
-                                                    <h4 className="font-bold text-slate-800">Pizza & Cold Drink</h4>
-                                                    <p className="text-xs text-slate-500">5 days ago</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="font-bold text-secondary">₹120</p>
-                                                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">
-                                                        Delivered
-                                                    </span>
-                                                </div>
+                                                    return (
+                                                        <div
+                                                            key={order.id}
+                                                            className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 cursor-pointer transition-colors"
+                                                            onClick={() => navigate('/track-order')}
+                                                        >
+                                                            {/* Order Image */}
+                                                            <div className="w-16 h-16 rounded-lg bg-gray-200 overflow-hidden flex-shrink-0">
+                                                                {imageUrl ? (
+                                                                    <img
+                                                                        src={imageUrl}
+                                                                        alt={firstItem.name}
+                                                                        className="w-full h-full object-cover"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-full h-full flex items-center justify-center">
+                                                                        <ShoppingBag className="w-6 h-6 text-gray-400" />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Order Details */}
+                                                            <div className="flex-grow min-w-0">
+                                                                <h4 className="font-semibold text-gray-800 text-sm truncate">
+                                                                    {firstItem?.name}
+                                                                    {order.items.length > 1 && (
+                                                                        <span className="text-gray-500 font-normal ml-1">
+                                                                            +{order.items.length - 1} more
+                                                                        </span>
+                                                                    )}
+                                                                </h4>
+                                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                                    {formatDate(order.createdAt)}
+                                                                </p>
+                                                            </div>
+
+                                                            {/* Price & Status */}
+                                                            <div className="text-right flex-shrink-0">
+                                                                <p className="font-bold text-gray-800 text-sm mb-1">
+                                                                    ₹{order.totalAmount}
+                                                                </p>
+                                                                {getStatusBadge(order.status)}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
-                                        </div>
+                                        )}
 
-                                        <button className="w-full mt-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors">
+                                        <button
+                                            onClick={() => navigate('/track-order')}
+                                            className="w-full mt-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-colors"
+                                        >
                                             View Order History
                                         </button>
                                     </div>

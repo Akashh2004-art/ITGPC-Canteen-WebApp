@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import faviconLogo from '../assets/favicon.png';
 
 interface NavbarProps {
   onCartOpen?: () => void;
@@ -28,15 +29,19 @@ const Navbar = ({ onCartOpen }: NavbarProps) => {
             className="flex items-center gap-3 min-w-0 cursor-pointer"
             onClick={() => navigate('/dashboard')}
           >
-            <div className="size-10 bg-secondary rounded-full flex items-center justify-center text-white shadow-lg flex-shrink-0">
-              <span className="material-symbols-outlined text-2xl">school</span>
+            <div className="size-10 bg-white rounded-full flex items-center justify-center shadow-lg flex-shrink-0 border-2 border-blue-100">
+              <img
+                src={faviconLogo}
+                alt="ITGPC Logo"
+                className="w-full h-full object-contain rounded-full"
+              />
             </div>
             <div className="flex flex-col min-w-0">
               <h1 className="text-secondary font-bold text-sm sm:text-base md:text-lg tracking-tight leading-none uppercase truncate">
                 Itahar Government Polytechnic
               </h1>
               <span className="text-[10px] md:text-xs text-slate-500 font-medium tracking-wide uppercase">
-                Faculty & staff canteen Portal
+                Faculty & Staff Canteen Portal
               </span>
             </div>
           </div>
@@ -58,7 +63,7 @@ const Navbar = ({ onCartOpen }: NavbarProps) => {
               </label>
             </div>
 
-            {/* ✅ Track Orders Button - Desktop Only */}
+            {/* Track Orders Button - Desktop Only */}
             <button
               onClick={() => navigate('/track-order')}
               className="hidden lg:flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-secondary hover:bg-slate-100 rounded-full text-sm font-medium transition-colors"
@@ -132,7 +137,7 @@ const Navbar = ({ onCartOpen }: NavbarProps) => {
                 <span className="font-medium text-sm">Profile</span>
               </button>
 
-              {/* ✅ Track Orders Option - Mobile */}
+              {/* Track Orders Option - Mobile */}
               <button
                 className="flex items-center gap-3 px-5 py-4 text-slate-700 hover:bg-slate-50 transition-colors border-b border-slate-100"
                 onClick={() => {

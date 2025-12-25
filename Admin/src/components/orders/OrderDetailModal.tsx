@@ -33,7 +33,9 @@ export function OrderDetailModal({ order, isOpen, onClose }: OrderDetailModalPro
               Order #{order.id}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {order.createdAt.toLocaleString()}
+              {typeof order.createdAt === 'string'
+                ? new Date(order.createdAt).toLocaleString()
+                : order.createdAt.toLocaleString()}
             </p>
           </div>
           <button
@@ -56,19 +58,27 @@ export function OrderDetailModal({ order, isOpen, onClose }: OrderDetailModalPro
           <div className="p-4 rounded-xl bg-muted/50 space-y-3">
             <h3 className="font-semibold text-foreground">Customer Details</h3>
             <div className="space-y-2 text-sm">
-              <p className="font-medium text-foreground">{order.customerName}</p>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Phone size={14} />
-                <span>{order.customerPhone}</span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin size={14} />
-                <span>{order.roomNumber}</span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Building size={14} />
-                <span>{order.department}</span>
-              </div>
+              <p className="font-medium text-foreground">
+                {order.user?.name || order.user?.fullName || order.customerName || 'N/A'}
+              </p>
+              {(order.user?.phone || order.customerPhone) && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Phone size={14} />
+                  <span>{order.user?.phone || order.customerPhone}</span>
+                </div>
+              )}
+              {order.roomNumber && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <MapPin size={14} />
+                  <span>{order.roomNumber}</span>
+                </div>
+              )}
+              {order.department && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Building size={14} />
+                  <span>{order.department}</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -82,22 +92,24 @@ export function OrderDetailModal({ order, isOpen, onClose }: OrderDetailModalPro
                   className="flex items-center justify-between py-3 border-b border-border last:border-0"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted">
-                      <img
-                        src={item.menuItem.imageUrl}
-                        alt={item.menuItem.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+                    {item.menuItem?.image && (
+                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted">
+                        <img
+                          src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/upload/${item.menuItem.image}`}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
                     <div>
-                      <p className="font-medium text-foreground">{item.menuItem.name}</p>
+                      <p className="font-medium text-foreground">{item.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        ₹{item.menuItem.price} × {item.quantity}
+                        ₹{item.price} × {item.quantity}
                       </p>
                     </div>
                   </div>
                   <span className="font-semibold text-foreground">
-                    ₹{item.menuItem.price * item.quantity}
+                    ₹{item.price * item.quantity}
                   </span>
                 </div>
               ))}

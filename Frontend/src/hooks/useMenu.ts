@@ -7,6 +7,7 @@ interface UseMenuOptions {
   category?: MenuCategory | 'all';
   search?: string;
   featured?: boolean;
+  special?: boolean;  // ✅ Special items filter option
 }
 
 export const useMenu = (options: UseMenuOptions = {}) => {
@@ -16,7 +17,7 @@ export const useMenu = (options: UseMenuOptions = {}) => {
 
   useEffect(() => {
     fetchMenuItems();
-  }, [options.category, options.search, options.featured]);
+  }, [options.category, options.search, options.featured, options.special]);
 
   const fetchMenuItems = async () => {
     try {
@@ -44,11 +45,15 @@ export const useMenu = (options: UseMenuOptions = {}) => {
 
       const data: MenuItem[] = await response.json();
 
-      // Filter featured items on frontend if needed
+      // Filter items on frontend if needed
       let filteredData = data;
       
-      if (options.featured) {
-        // Take first 6 items as featured (you can add backend logic later)
+      // ✅ Special items filter
+      if (options.special) {
+        filteredData = data.filter(item => item.available && item.isSpecial);
+      }
+      // Featured items filter
+      else if (options.featured) {
         filteredData = data.filter(item => item.available).slice(0, 6);
       }
 

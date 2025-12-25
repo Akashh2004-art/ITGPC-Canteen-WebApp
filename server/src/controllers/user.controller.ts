@@ -366,3 +366,96 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
     });
   }
 };
+
+
+
+// Get Current User Profile
+export const getUserProfile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+      return;
+    }
+
+    const user = await User.findById(userId).select('-password');
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        id: user._id,
+        fullName: user.fullName,
+        phone: user.phone,
+        email: user.email,
+        role: user.role,
+        authProvider: user.authProvider,
+        isActive: user.isActive,
+        createdAt: user.createdAt
+      }
+    });
+
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error. Please try again later.'
+    });
+  }
+};
+
+// Get User's Recent Orders (Last 5)
+export const getUserRecentOrders = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+      return;
+    }
+
+    // Import Order model dynamically
+    const Order = (await import('../models/Order')).default;
+
+    // Get last 5 orders, excluding cancelled
+    const orders = await Order.find({ 
+      user: userId,
+      status: { $ne: 'cancelled' }
+    })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('items totalAmount status createdAt');
+
+    res.status(200).json({
+      success: true,
+      data: orders.map(order => ({
+        id: order._id,
+        items: order.items,
+        totalAmount: order.totalAmount,
+        status: order.status,
+        createdAt: order.createdAt
+      }))
+    });
+
+  } catch (error) {
+    console.error('Get recent orders error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error. Please try again later.'
+    });
+  }
+};

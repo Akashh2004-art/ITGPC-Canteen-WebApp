@@ -13,30 +13,25 @@ dotenv.config();
 const app: Application = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
 app.use(cors({
   origin: [
     process.env.CLIENT_URL || 'http://localhost:8080',
-    'http://localhost:5173' // Frontend user app
+    'http://localhost:5173'
   ],
   credentials: true
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files (uploaded images)
 app.use('/upload', express.static(path.join(__dirname, '../upload')));
 
-// Connect to Database
 connectDB();
 
-// Routes
-app.use('/api/auth', authRoutes);  // Admin routes
-app.use('/api/auth', userRoutes);  // User (Faculty) routes
-app.use('/api/menu', menuRoutes);  // Menu management routes
-app.use('/api/orders', orderRoutes);  // Order management routes
+app.use('/api/auth', authRoutes);
+app.use('/api/auth', userRoutes);
+app.use('/api/menu', menuRoutes);
+app.use('/api/orders', orderRoutes);
 
-// Health check
 app.get('/health', (req, res) => {
   res.json({ 
     success: true, 
@@ -45,7 +40,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// 404 handler
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -53,7 +47,7 @@ app.use((req, res) => {
   });
 });
 
-// Error handler
+
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Error:', err);
   res.status(err.status || 500).json({

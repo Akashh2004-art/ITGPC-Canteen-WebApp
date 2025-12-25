@@ -4,27 +4,33 @@ export type MenuCategory = 'breakfast' | 'lunch' | 'dinner' | 'snacks' | 'bevera
 
 export interface MenuItem {
   id: string;
-  name: string;
+  name: string; 
   description: string;
   category: MenuCategory;
   price: number;
   image: string;  
   available: boolean;
+  isSpecial: boolean;
+  originalPrice?: number;
+  discountPercentage?: number;
+  specialBadge?: string;
+  specialDescription?: string;
+  validUntil?: string;
   createdAt?: string; 
   updatedAt?: string;   
 }
 
 export interface OrderItem {
-  menuItem?: MenuItem;  // ✅ Optional
-  menuItemId?: string;  // ✅ Added
-  name: string;         // ✅ Direct name
-  price: number;        // ✅ Direct price
+  menuItem?: MenuItem;  
+  menuItemId?: string;  
+  name: string;         
+  price: number;        
   quantity: number;
 }
 
 export interface Order {
   id: string;
-  user?: {              // ✅ Added user object from backend
+  user?: {                      
     _id?: string;
     id?: string;
     name?: string;
@@ -32,8 +38,8 @@ export interface Order {
     email?: string;
     phone?: string;
   };
-  customerName?: string;  // ✅ Fallback
-  customerPhone?: string; // ✅ Fallback
+  customerName?: string;  
+  customerPhone?: string; 
   roomNumber?: string;
   department?: string;
   items: OrderItem[];
@@ -42,8 +48,8 @@ export interface Order {
   paymentStatus?: 'pending' | 'paid' | 'failed';
   paymentMethod?: 'cash' | 'online';
   specialInstructions?: string;
-  createdAt: Date | string;  // ✅ Support both
-  updatedAt?: Date | string; // ✅ Support both
+  createdAt: Date | string;     
+  updatedAt?: Date | string; 
 }
 
 export interface Faculty {

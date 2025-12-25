@@ -2,10 +2,30 @@ import { Request, Response } from 'express';
 import MenuItem from '../models/menuItem';
 import { deleteImage } from '../middleware/upload.middleware';
 
+// ✅ Helper function to transform menu item
+const transformMenuItem = (item: any) => ({
+  id: item._id.toString(),
+  name: item.name,
+  description: item.description,
+  category: item.category,
+  price: item.price,
+  image: item.image,
+  available: item.available,
+  // ✅ Special menu fields
+  isSpecial: item.isSpecial || false,
+  originalPrice: item.originalPrice,
+  discountPercentage: item.discountPercentage,
+  specialBadge: item.specialBadge,
+  specialDescription: item.specialDescription,
+  validUntil: item.validUntil,
+  createdAt: item.createdAt,
+  updatedAt: item.updatedAt,
+});
+
 // Get all menu items
 export const getAllMenuItems = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { category, available, search } = req.query;
+    const { category, available, search, isSpecial } = req.query;
 
     // Build filter object
     const filter: any = {};
@@ -17,6 +37,11 @@ export const getAllMenuItems = async (req: Request, res: Response): Promise<void
     if (available !== undefined) {
       filter.available = available === 'true';
     }
+
+    // ✅ Filter by special status
+    if (isSpecial !== undefined) {
+      filter.isSpecial = isSpecial === 'true';
+    }
     
     if (search) {
       filter.$or = [
@@ -25,20 +50,11 @@ export const getAllMenuItems = async (req: Request, res: Response): Promise<void
       ];
     }
 
-    const menuItems = await MenuItem.find(filter).sort({ createdAt: -1 });
+    // ✅ Sort: Special items first, then by creation date
+    const menuItems = await MenuItem.find(filter).sort({ isSpecial: -1, createdAt: -1 });
 
-    // ✅ FIX: Transform _id to id for frontend compatibility
-    const transformedItems = menuItems.map(item => ({
-      id: item._id.toString(),  // Convert _id to id as string
-      name: item.name,
-      description: item.description,
-      category: item.category,
-      price: item.price,
-      image: item.image,
-      available: item.available,
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt,
-    }));
+    // ✅ Use transform helper
+    const transformedItems = menuItems.map(transformMenuItem);
 
     res.status(200).json(transformedItems);
   } catch (error: any) {
@@ -66,20 +82,8 @@ export const getMenuItemById = async (req: Request, res: Response): Promise<void
       return;
     }
 
-    // ✅ FIX: Transform _id to id
-    const transformedItem = {
-      id: menuItem._id.toString(),
-      name: menuItem.name,
-      description: menuItem.description,
-      category: menuItem.category,
-      price: menuItem.price,
-      image: menuItem.image,
-      available: menuItem.available,
-      createdAt: menuItem.createdAt,
-      updatedAt: menuItem.updatedAt,
-    };
-
-    res.status(200).json(transformedItem);
+    // ✅ Use transform helper
+    res.status(200).json(transformMenuItem(menuItem));
   } catch (error: any) {
     console.error('Error fetching menu item:', error);
     res.status(500).json({
@@ -93,10 +97,23 @@ export const getMenuItemById = async (req: Request, res: Response): Promise<void
 // Create new menu item
 export const createMenuItem = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, description, category, price, available } = req.body;
+    const { 
+      name, 
+      description, 
+      category, 
+      price, 
+      available,
+      // ✅ Special menu fields
+      isSpecial,
+      originalPrice,
+      discountPercentage,
+      specialBadge,
+      specialDescription,
+      validUntil
+    } = req.body;
 
     // Validate required fields
-    if (!name || !description || !category || !price) {
+    if (!name || !description || !category) {
       res.status(400).json({
         success: false,
         message: 'Please provide all required fields',
@@ -113,17 +130,56 @@ export const createMenuItem = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    // Create menu item with relative image path
-    const menuItem = await MenuItem.create({
+    // ✅ Prepare menu item data
+    const menuItemData: any = {
       name,
       description,
       category,
-      price: parseFloat(price),
       image: `menu-images/${req.file.filename}`,
       available: available === 'true',
-    });
+      isSpecial: isSpecial === 'true',
+    };
 
-    res.status(201).json(menuItem);
+    // ✅ Handle pricing based on special status
+    if (menuItemData.isSpecial) {
+      // Special item - use discount pricing
+      if (!originalPrice || !discountPercentage) {
+        // Delete uploaded image
+        deleteImage(`menu-images/${req.file.filename}`);
+        
+        res.status(400).json({
+          success: false,
+          message: 'Original price and discount percentage are required for special items',
+        });
+        return;
+      }
+
+      menuItemData.originalPrice = parseFloat(originalPrice);
+      menuItemData.discountPercentage = parseFloat(discountPercentage);
+      menuItemData.specialBadge = specialBadge || 'hot';
+      menuItemData.specialDescription = specialDescription || '';
+      menuItemData.validUntil = validUntil ? new Date(validUntil) : undefined;
+      menuItemData.price = Math.round(
+        menuItemData.originalPrice - (menuItemData.originalPrice * menuItemData.discountPercentage / 100)
+      );
+    } else {
+      // Regular item - direct price
+      if (!price) {
+        deleteImage(`menu-images/${req.file.filename}`);
+        
+        res.status(400).json({
+          success: false,
+          message: 'Price is required for regular items',
+        });
+        return;
+      }
+      menuItemData.price = parseFloat(price);
+    }
+
+    // Create menu item
+    const menuItem = await MenuItem.create(menuItemData);
+
+    res.status(201).json(transformMenuItem(menuItem));
   } catch (error: any) {
     console.error('Error creating menu item:', error);
     
@@ -144,7 +200,19 @@ export const createMenuItem = async (req: Request, res: Response): Promise<void>
 export const updateMenuItem = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { name, description, category, price, available } = req.body;
+    const { 
+      name, 
+      description, 
+      category, 
+      price, 
+      available,
+      isSpecial,
+      originalPrice,
+      discountPercentage,
+      specialBadge,
+      specialDescription,
+      validUntil
+    } = req.body;
 
     const menuItem = await MenuItem.findById(id);
 
@@ -156,29 +224,47 @@ export const updateMenuItem = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    // Update fields
+    // Update basic fields
     if (name) menuItem.name = name;
     if (description) menuItem.description = description;
     if (category) menuItem.category = category;
-    if (price) menuItem.price = parseFloat(price);
     if (available !== undefined) menuItem.available = available === 'true';
 
-    // Update image if new one uploaded
-    if (req.file) {
-      // Delete old image
-      deleteImage(menuItem.image);
+    if (isSpecial !== undefined) {
+      menuItem.isSpecial = isSpecial === 'true';
+    }
+    if (menuItem.isSpecial) {
+      if (originalPrice) menuItem.originalPrice = parseFloat(originalPrice);
+      if (discountPercentage) menuItem.discountPercentage = parseFloat(discountPercentage);
+      if (specialBadge) menuItem.specialBadge = specialBadge as any;
+      if (specialDescription !== undefined) menuItem.specialDescription = specialDescription;
+      if (validUntil) menuItem.validUntil = new Date(validUntil);
       
-      // Set new image
+      if (menuItem.originalPrice && menuItem.discountPercentage) {
+        menuItem.price = Math.round(
+          menuItem.originalPrice - (menuItem.originalPrice * menuItem.discountPercentage / 100)
+        );
+      }
+    } else {
+      if (price) menuItem.price = parseFloat(price);
+      menuItem.originalPrice = undefined;
+      menuItem.discountPercentage = undefined;
+      menuItem.specialBadge = undefined;
+      menuItem.specialDescription = undefined;
+      menuItem.validUntil = undefined;
+    }
+
+    if (req.file) {
+      deleteImage(menuItem.image);
       menuItem.image = `menu-images/${req.file.filename}`;
     }
 
     await menuItem.save();
 
-    res.status(200).json(menuItem);
+    res.status(200).json(transformMenuItem(menuItem));
   } catch (error: any) {
     console.error('Error updating menu item:', error);
     
-    // Delete uploaded image if update fails
     if (req.file) {
       deleteImage(`menu-images/${req.file.filename}`);
     }
@@ -191,7 +277,6 @@ export const updateMenuItem = async (req: Request, res: Response): Promise<void>
   }
 };
 
-// Delete menu item
 export const deleteMenuItem = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
@@ -206,10 +291,8 @@ export const deleteMenuItem = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    // Delete image file
     deleteImage(menuItem.image);
 
-    // Delete from database
     await MenuItem.findByIdAndDelete(id);
 
     res.status(200).json({
@@ -226,7 +309,6 @@ export const deleteMenuItem = async (req: Request, res: Response): Promise<void>
   }
 };
 
-// Toggle menu item availability
 export const toggleAvailability = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
@@ -254,12 +336,34 @@ export const toggleAvailability = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    res.status(200).json(menuItem);
+    res.status(200).json(transformMenuItem(menuItem));
   } catch (error: any) {
     console.error('Error toggling availability:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update availability',
+      error: error.message,
+    });
+  }
+};
+
+// ✅ NEW: Get today's special items (for user dashboard)
+export const getTodaySpecials = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const today = new Date();
+
+    const specials = await MenuItem.find({
+      isSpecial: true,
+      available: true,
+      validUntil: { $gte: today },
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json(specials.map(transformMenuItem));
+  } catch (error: any) {
+    console.error('Error fetching specials:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch special items',
       error: error.message,
     });
   }

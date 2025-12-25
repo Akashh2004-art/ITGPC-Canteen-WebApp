@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Sparkles, UtensilsCrossed } from 'lucide-react';
 import { MenuItem, MenuCategory } from '@/types';
 import { MenuCard } from '@/components/menu/MenuCard';
 import { MenuItemModal } from '@/components/menu/MenuItemModal';
@@ -36,7 +36,6 @@ export default function MenuManagement() {
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
 
-  // Fetch menu items on mount
   useEffect(() => {
     fetchMenuItems();
   }, []);
@@ -60,12 +59,28 @@ export default function MenuManagement() {
     }
   };
 
-  const filteredItems = menuItems.filter((item) => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory =
-      selectedCategory === 'all' || item.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+  // ✅ Separate regular and special items
+  const regularItems = menuItems.filter(item => !item.isSpecial);
+  const specialItems = menuItems.filter(item => {
+    if (!item.isSpecial) return false;
+    // Check if still valid
+    if (item.validUntil) {
+      return new Date(item.validUntil) >= new Date();
+    }
+    return true;
   });
+
+  // ✅ Apply filters
+  const filterItems = (items: MenuItem[]) => {
+    return items.filter((item) => {
+      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  };
+
+  const filteredRegular = filterItems(regularItems);
+  const filteredSpecial = filterItems(specialItems);
 
   const handleAddItem = () => {
     setEditingItem(null);
@@ -79,10 +94,7 @@ export default function MenuManagement() {
 
   const handleSaveItem = async (formData: FormData, itemId?: string) => {
     try {
-      const url = itemId
-        ? `${API_URL}/api/menu/${itemId}`
-        : `${API_URL}/api/menu`;
-
+      const url = itemId ? `${API_URL}/api/menu/${itemId}` : `${API_URL}/api/menu`;
       const method = itemId ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -97,13 +109,9 @@ export default function MenuManagement() {
       const savedItem = await response.json();
 
       if (itemId) {
-        // Update existing item
-        setMenuItems((prev) =>
-          prev.map((item) => (item.id === itemId ? savedItem : item))
-        );
+        setMenuItems((prev) => prev.map((item) => (item.id === itemId ? savedItem : item)));
         toast.success('Menu item updated successfully!');
       } else {
-        // Add new item
         setMenuItems((prev) => [...prev, savedItem]);
         toast.success('Menu item added successfully!');
       }
@@ -159,9 +167,7 @@ export default function MenuManagement() {
         prev.map((item) => (item.id === id ? { ...item, available } : item))
       );
 
-      toast.success(
-        available ? 'Item is now available' : 'Item marked as unavailable'
-      );
+      toast.success(available ? 'Item is now available' : 'Item marked as unavailable');
     } catch (error) {
       console.error('Error updating availability:', error);
       toast.error('Failed to update availability');
@@ -177,7 +183,7 @@ export default function MenuManagement() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -185,7 +191,7 @@ export default function MenuManagement() {
             Menu Management
           </h1>
           <p className="text-muted-foreground mt-1">
-            Manage your canteen menu items
+            Manage your canteen menu items and special offers
           </p>
         </div>
         <Button onClick={handleAddItem} className="bg-primary hover:bg-primary/90">
@@ -219,40 +225,91 @@ export default function MenuManagement() {
         </Select>
       </div>
 
-      {/* Menu Grid */}
-      {filteredItems.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredItems.map((item, idx) => (
-            <div
-              key={item.id}
-              className="animate-fade-in"
-              style={{ animationDelay: `${idx * 50}ms` }}
-            >
-              <MenuCard
-                item={item}
-                onEdit={handleEditItem}
-                onDelete={handleDeleteItem}
-                onToggleAvailability={handleToggleAvailability}
-              />
+      {/* ✅ Special Menu Section */}
+      {filteredSpecial.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 pb-4 border-b-2 border-dashed border-border">
+            <div className="size-10 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shadow-lg">
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
-          ))}
+            <div>
+              <h2 className="text-xl font-black text-foreground">Today's Specials</h2>
+              <p className="text-sm text-muted-foreground">
+                {filteredSpecial.length} special offer{filteredSpecial.length > 1 ? 's' : ''} available
+              </p>
+            </div>
+            <div className="ml-auto px-4 py-1.5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full text-sm font-bold shadow-lg">
+              🔥 LIMITED TIME
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredSpecial.map((item, idx) => (
+              <div
+                key={item.id}
+                className="animate-fade-in"
+                style={{ animationDelay: `${idx * 50}ms` }}
+              >
+                <MenuCard
+                  item={item}
+                  onEdit={handleEditItem}
+                  onDelete={handleDeleteItem}
+                  onToggleAvailability={handleToggleAvailability}
+                />
+              </div>
+            ))}
+          </div>
         </div>
-      ) : (
-        <EmptyState
-          title="No menu items found"
-          description={
-            searchQuery || selectedCategory !== 'all'
-              ? 'Try adjusting your search or filter'
-              : 'Add your first menu item to get started'
-          }
-          action={
-            <Button onClick={handleAddItem} className="bg-primary hover:bg-primary/90">
-              <Plus size={18} className="mr-2" />
-              Add Menu Item
-            </Button>
-          }
-        />
       )}
+
+      {/* ✅ Regular Menu Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-3 pb-4 border-b-2 border-dashed border-border">
+          <div className="size-10 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center shadow-lg">
+            <UtensilsCrossed className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-foreground">Regular Menu</h2>
+            <p className="text-sm text-muted-foreground">
+              {filteredRegular.length} item{filteredRegular.length > 1 ? 's' : ''} available
+            </p>
+          </div>
+        </div>
+
+        {filteredRegular.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredRegular.map((item, idx) => (
+              <div
+                key={item.id}
+                className="animate-fade-in"
+                style={{ animationDelay: `${idx * 50}ms` }}
+              >
+                <MenuCard
+                  item={item}
+                  onEdit={handleEditItem}
+                  onDelete={handleDeleteItem}
+                  onToggleAvailability={handleToggleAvailability}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="No menu items found"
+            description={
+              searchQuery || selectedCategory !== 'all'
+                ? 'Try adjusting your search or filter'
+                : 'Add your first menu item to get started'
+            }
+            action={
+              <Button onClick={handleAddItem} className="bg-primary hover:bg-primary/90">
+                <Plus size={18} className="mr-2" />
+                Add Menu Item
+              </Button>
+            }
+          />
+        )}
+      </div>
 
       {/* Menu Item Modal */}
       <MenuItemModal

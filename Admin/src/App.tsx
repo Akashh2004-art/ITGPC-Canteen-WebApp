@@ -18,12 +18,17 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster position="top-right" richColors />
-      <BrowserRouter>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <Routes>
           {/* Auth Pages */}
           <Route path="/" element={<Login />} />
-          <Route path="/signup" element={<Signup />} /> {/* ✅ Add this */}
-          
+          <Route path="/signup" element={<Signup />} />
+
           {/* Dashboard Routes */}
           <Route element={<DashboardLayout />}>
             <Route path="/dashboard" element={<Dashboard />} />
@@ -32,7 +37,7 @@ const App = () => (
             <Route path="/faculty" element={<FacultyList />} />
             <Route path="/analytics" element={<Analytics />} />
           </Route>
-          
+
           {/* Catch all */}
           <Route path="*" element={<NotFound />} />
         </Routes>
